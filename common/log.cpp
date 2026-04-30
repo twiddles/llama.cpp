@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
+#include <iomanip>
 #include <mutex>
 #include <sstream>
 #include <thread>
@@ -91,13 +93,19 @@ struct common_log_entry {
 
         if (level != GGML_LOG_LEVEL_NONE && level != GGML_LOG_LEVEL_CONT && prefix) {
             if (timestamp) {
-                // [M.s.ms.us]
-                fprintf(fcur, "%s%d.%02d.%03d.%03d%s ",
+                // [YYYY-MM-DD HH:MM:SS UTC]
+                auto now = std::chrono::system_clock::now();
+                auto time_t = std::chrono::system_clock::to_time_t(now);
+                auto tm = *std::gmtime(&time_t);
+
+                fprintf(fcur, "%s[%04d-%02d-%02d %02d:%02d:%02d UTC]%s ",
                         g_col[COMMON_LOG_COL_BLUE],
-                        (int) (timestamp / 1000000 / 60),
-                        (int) (timestamp / 1000000 % 60),
-                        (int) (timestamp / 1000 % 1000),
-                        (int) (timestamp % 1000),
+                        tm.tm_year + 1900,
+                        tm.tm_mon + 1,
+                        tm.tm_mday,
+                        tm.tm_hour,
+                        tm.tm_min,
+                        tm.tm_sec,
                         g_col[COMMON_LOG_COL_DEFAULT]);
             }
 
@@ -220,7 +228,7 @@ public:
         entry.prefix = prefix;
         entry.timestamp = 0;
         if (timestamps) {
-            entry.timestamp = t_us() - t_start;
+            entry.timestamp = 1;  // Use as boolean flag for absolute timestamp
         }
         entry.is_end = false;
 
